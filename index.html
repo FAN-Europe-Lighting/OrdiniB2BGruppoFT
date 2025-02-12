@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ordina su Gruppo FT</title>
+    <style>
+        body {
+            background-color: #04353D;
+            font-family: Arial, sans-serif;
+            color: white;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            flex-direction: column;
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        img.logo {
+            width: 150px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"], input[type="number"], select, textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 5px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button {
+            background-color: #00796B;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #004D40;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid white;
+            text-align: center;
+        }
+
+        .success-message, .error-message, .welcome-message {
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+            margin-top: 10px;
+        }
+
+        .success-message {
+            background-color: #4CAF50;
+        }
+
+        .error-message {
+            background-color: #D32F2F;
+        }
+
+        .welcome-message {
+            background-color: #00796B;
+            color: white;
+        }
+
+        small {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        @media (max-width: 600px) {
+            input, button, select, textarea {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <img src="https://via.placeholder.com/150" alt="Logo" class="logo">
+
+        <h2>Inserisci ordine :)</h2>
+
+        <label for="codiceCliente">Codice Cliente *</label>
+        <input type="text" id="codiceCliente" placeholder="Inserisci il codice cliente (es: C02675)" required>
+        <button onclick="verificaCliente()">Accedi</button>
+
+        <div class="welcome-message" id="welcomeMessage"></div>
+
+        <label for="spedizione">È necessaria la spedizione? *</label>
+        <select id="spedizione" required onchange="gestisciSpedizione()">
+            <option value="">Seleziona un'opzione</option>
+            <option value="SI">Sì</option>
+            <option value="NO">No</option>
+        </select>
+
+        <input type="text" id="nomeCognome" placeholder="Nome e cognome destinatario" disabled>
+        <input type="text" id="emailTelefono" placeholder="Email e numero di telefono del destinatario" disabled>
+        <input type="text" id="indirizzo" placeholder="Indirizzo del destinatario" disabled>
+        <input type="text" id="cittaCap" placeholder="Località e CAP" disabled>
+        <input type="text" id="paese" placeholder="Paese" disabled>
+
+        <input type="text" id="articolo" placeholder="Cerca articolo..." list="articoliList">
+        <datalist id="articoliList"></datalist>
+        <input type="number" id="quantita" placeholder="Quantità" min="1">
+
+        <button onclick="aggiungiArticolo()">Aggiungi Articolo</button>
+
+        <table id="carrello">
+            <thead>
+                <tr>
+                    <th>Codice Articolo</th>
+                    <th>Quantità</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <label for="note">Note (facoltative)</label>
+        <textarea id="note" placeholder="Inserisci eventuali note aggiuntive..."></textarea>
+
+        <button id="inviaOrdineBtn" onclick="inviaOrdine()" disabled>Invia Ordine</button>
+
+        <div class="success-message" id="successMessage">✅ Ordine inviato con successo!</div>
+        <div class="error-message" id="errorMessage">❌ Compila tutti i campi obbligatori!</div>
+    </div>
+
+    <script>
+        const apiUrl = 'https://script.google.com/macros/s/AKfycbzOvr2V81okKRM-O4mvbyZ29VqIbhSLqNY7HAoij2R6UGNMNM4ebzrw0_5HyxfmBfl0/exec';
+        let carrello = [];
+
+        function gestisciSpedizione() {
+            const spedizione = document.getElementById('spedizione').value;
+            const campiSpedizione = ['nomeCognome', 'emailTelefono', 'indirizzo', 'cittaCap', 'paese'];
+
+            campiSpedizione.forEach(id => {
+                const campo = document.getElementById(id);
+                campo.disabled = spedizione !== "SI";
+                campo.required = spedizione === "SI";
+                if (spedizione !== "SI") campo.value = '';
+            });
+        }
+
+        function aggiungiArticolo() {
+            const articolo = document.getElementById('articolo').value.trim();
+            const quantita = parseInt(document.getElementById('quantita').value);
+
+            if (!articolo || isNaN(quantita) || quantita < 1) {
+                alert("Inserisci un articolo valido e una quantità.");
+                return;
+            }
+
+            const esistente = carrello.find(item => item.articolo === articolo);
+            if (esistente) {
+                esistente.quantita += quantita;
+            } else {
+                carrello.push({ articolo, quantita });
+            }
+
+            aggiornaCarrello();
+            document.getElementById('articolo').value = '';
+            document.getElementById('quantita').value = '';
+        }
+
+        function aggiornaCarrello() {
+            const tbody = document.getElementById('carrello').querySelector('tbody');
+            tbody.innerHTML = '';
+
+            carrello.forEach((item, index) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.articolo}</td>
+                        <td>${item.quantita}</td>
+                        <td><button onclick="rimuoviArticolo(${index})">Rimuovi</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function rimuoviArticolo(index) {
+            carrello.splice(index, 1);
+            aggiornaCarrello();
+        }
+
+        function verificaCliente() {
+            const codiceCliente = document.getElementById('codiceCliente').value.trim();
+
+            fetch(`${apiUrl}?action=getClienti`)
+                .then(response => response.json())
+                .then(data => {
+                    const cliente = data.find(c => c[0] === codiceCliente);
+                    const welcomeMessage = document.getElementById('welcomeMessage');
+                    const inviaOrdineBtn = document.getElementById('inviaOrdineBtn');
+
+                    if (cliente) {
+                        welcomeMessage.innerText = `✅ Benvenuto, ${cliente[1]}!`;
+                        welcomeMessage.style.display = 'block';
+                        inviaOrdineBtn.disabled = false;
+                    } else {
+                        welcomeMessage.innerText = '❌ Codice cliente non valido!';
+                        welcomeMessage.style.backgroundColor = '#D32F2F';
+                        welcomeMessage.style.display = 'block';
+                        inviaOrdineBtn.disabled = true;
+                    }
+                });
+        }
+
+        function caricaArticoli() {
+            fetch(`${apiUrl}?action=getArticoli`)
+                .then(response => response.json())
+                .then(data => {
+                    const datalist = document.getElementById('articoliList');
+                    data.forEach(articolo => {
+                        const option = document.createElement('option');
+                        option.value = articolo[0];
+                        option.textContent = articolo[1];
+                        datalist.appendChild(option);
+                    });
+                });
+        }
+
+        function inviaOrdine() {
+    const ordine = {
+        ordineDettagli: carrello.map(item => ({
+            CardCode: document.getElementById('codiceCliente').value.trim(),
+            ItemCode: item.articolo,
+            Quantity: item.quantita,
+            Spedizione: document.getElementById('spedizione').value,
+            NomeCognome: document.getElementById('nomeCognome').value.trim(),
+            EmailTelefono: document.getElementById('emailTelefono').value.trim(),
+            Indirizzo: document.getElementById('indirizzo').value.trim(),
+            CittaCap: document.getElementById('cittaCap').value.trim(),
+            Paese: document.getElementById('paese').value.trim(),
+            Note: document.getElementById('note').value.trim()
+        }))
+    };
+
+    console.log("📦 Dati inviati:", ordine); // Debug: log dei dati prima dell'invio
+
+    fetch('https://script.google.com/macros/s/AKfycbzOvr2V81okKRM-O4mvbyZ29VqIbhSLqNY7HAoij2R6UGNMNM4ebzrw0_5HyxfmBfl0/exec', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(ordine)
+    })
+    .then(response => {
+        console.log("🔍 Risposta HTTP:", response.status);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        console.log("✅ Risposta JSON:", data);
+        if (data.success) {
+            document.getElementById('successMessage').innerText = `✅ Ordine inviato con successo! ID Ordine: ${data.idOrdine}`;
+            document.getElementById('successMessage').style.display = 'block';
+        } else {
+            document.getElementById('errorMessage').innerText = `❌ Errore: ${data.error}`;
+            document.getElementById('errorMessage').style.display = 'block';
+        }
+    })
+    .catch(error => {
+        console.error('❌ Errore durante l’invio:', error);
+        document.getElementById('errorMessage').innerText = `❌ Errore di connessione: ${error.message}`;
+        document.getElementById('errorMessage').style.display = 'block';
+    });
+}
+
+        window.onload = function() {
+            caricaArticoli();
+        };
+    </script>
+
+</body>
+</html>
