@@ -1,14 +1,17 @@
 const fetch = require("node-fetch");
 
 exports.handler = async (event) => {
-  try {
-    // Ottieni i dati dal corpo della richiesta
-    const formData = JSON.parse(event.body);
+  if (event.httpMethod === "GET") {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ apiUrl: process.env.GOOGLE_SHEET_URL }),
+    };
+  }
 
-    // URL del tuo Google Apps Script (mettilo come variabile d'ambiente in Netlify)
+  try {
+    const formData = JSON.parse(event.body);
     const googleSheetUrl = process.env.GOOGLE_SHEET_URL;
 
-    // Effettua la richiesta POST verso Google Apps Script
     const response = await fetch(googleSheetUrl, {
       method: "POST",
       headers: {
@@ -33,3 +36,4 @@ exports.handler = async (event) => {
     };
   }
 };
+
