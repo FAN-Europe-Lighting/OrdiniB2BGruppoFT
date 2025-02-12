@@ -158,95 +158,40 @@
     <script>
         let apiUrl = "";
 
-// ✅ Recupera l'URL dell'API di Google Sheets da Netlify all'avvio
-fetch("/.netlify/functions/sendToGoogleSheet")
-  .then(response => {
+// ✅ Recupera l'API URL prima di qualsiasi operazione
+async function fetchApiUrl() {
+  try {
+    const response = await fetch("/.netlify/functions/sendToGoogleSheet");
     if (!response.ok) throw new Error("Errore nel recupero dell'API URL");
-    return response.json();
-  })
-  .then(data => {
+    
+    const data = await response.json();
     if (!data.apiUrl) throw new Error("API URL non disponibile nei dati ricevuti");
+
     apiUrl = data.apiUrl;
     console.log("🔗 API URL ottenuta:", apiUrl);
-  })
-  .catch(error => {
+  } catch (error) {
     console.error("❌ Errore nel recupero dell'API URL:", error);
-  });
+  }
+}
 
-// ✅ Attesa dell'API URL prima di procedere con qualsiasi operazione
+// ✅ Aspetta che l'API sia pronta prima di eseguire qualsiasi altra azione
 async function waitForApiUrl() {
   while (!apiUrl) {
     console.log("⌛ In attesa dell'API URL...");
-    await new Promise(resolve => setTimeout(resolve, 500)); // Aspetta 500ms
+    await new Promise(resolve => setTimeout(resolve, 500));
   }
   console.log("✅ API URL pronta:", apiUrl);
-}
-
-let carrello = [];
-
-// ✅ Gestisce i campi della spedizione in base alla selezione
-function gestisciSpedizione() {
-  const spedizione = document.getElementById("spedizione").value;
-  const campiSpedizione = ["nomeCognome", "emailTelefono", "indirizzo", "cittaCap", "paese"];
-
-  campiSpedizione.forEach(id => {
-    const campo = document.getElementById(id);
-    campo.disabled = spedizione !== "SI";
-    campo.required = spedizione === "SI";
-    if (spedizione !== "SI") campo.value = "";
-  });
-}
-
-// ✅ Aggiunge un articolo al carrello
-function aggiungiArticolo() {
-  const articolo = document.getElementById("articolo").value.trim();
-  const quantita = parseInt(document.getElementById("quantita").value);
-
-  if (!articolo || isNaN(quantita) || quantita < 1) {
-    alert("⚠️ Inserisci un articolo valido e una quantità.");
-    return;
-  }
-
-  const esistente = carrello.find(item => item.articolo === articolo);
-  if (esistente) {
-    esistente.quantita += quantita;
-  } else {
-    carrello.push({ articolo, quantita });
-  }
-
-  aggiornaCarrello();
-  document.getElementById("articolo").value = "";
-  document.getElementById("quantita").value = "";
-}
-
-// ✅ Aggiorna il carrello visivamente e abilita/disabilita il pulsante
-function aggiornaCarrello() {
-  const tbody = document.getElementById("carrello").querySelector("tbody");
-  tbody.innerHTML = "";
-
-  carrello.forEach((item, index) => {
-    tbody.innerHTML += `
-      <tr>
-        <td>${item.articolo}</td>
-        <td>${item.quantita}</td>
-        <td><button onclick="rimuoviArticolo(${index})">Rimuovi</button></td>
-      </tr>
-    `;
-  });
-
-  document.getElementById("inviaOrdineBtn").disabled = carrello.length === 0;
-}
-
-// ✅ Rimuove un articolo dal carrello
-function rimuoviArticolo(index) {
-  carrello.splice(index, 1);
-  aggiornaCarrello();
 }
 
 // ✅ Verifica il codice cliente
 async function verificaCliente() {
   await waitForApiUrl();
   const codiceCliente = document.getElementById("codiceCliente").value.trim();
+
+  if (!codiceCliente) {
+    alert("⚠️ Inserisci un codice cliente!");
+    return;
+  }
 
   fetch(`${apiUrl}?action=getClienti`)
     .then(response => response.json())
@@ -269,75 +214,10 @@ async function verificaCliente() {
     .catch(error => console.error("❌ Errore nel recupero clienti:", error));
 }
 
-// ✅ Carica gli articoli disponibili nella lista
-async function caricaArticoli() {
-  await waitForApiUrl();
-
-  fetch(`${apiUrl}?action=getArticoli`)
-    .then(response => response.json())
-    .then(data => {
-      const datalist = document.getElementById("articoliList");
-      data.forEach(articolo => {
-        const option = document.createElement("option");
-        option.value = articolo[0];
-        option.textContent = articolo[1];
-        datalist.appendChild(option);
-      });
-    })
-    .catch(error => console.error("❌ Errore nel caricamento articoli:", error));
-}
-
-// ✅ Invia l'ordine
-async function inviaOrdine() {
-  await waitForApiUrl();
-
-  const ordine = {
-    ordineDettagli: carrello.map(item => ({
-      CardCode: document.getElementById("codiceCliente").value.trim(),
-      ItemCode: item.articolo,
-      Quantity: item.quantita,
-      Spedizione: document.getElementById("spedizione").value,
-      NomeCognome: document.getElementById("nomeCognome").value.trim(),
-      EmailTelefono: document.getElementById("emailTelefono").value.trim(),
-      Indirizzo: document.getElementById("indirizzo").value.trim(),
-      CittaCap: document.getElementById("cittaCap").value.trim(),
-      Paese: document.getElementById("paese").value.trim(),
-      Note: document.getElementById("note").value.trim()
-    }))
-  };
-
-  console.log("📦 Dati inviati:", ordine);
-
-  fetch(apiUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(ordine)
-  })
-    .then(response => {
-      console.log("🔍 Risposta HTTP:", response.status);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      return response.json();
-    })
-    .then(data => {
-      console.log("✅ Risposta JSON:", data);
-      if (data.success) {
-        document.getElementById("successMessage").innerText = `✅ Ordine inviato con successo! ID Ordine: ${data.idOrdine}`;
-        document.getElementById("successMessage").style.display = "block";
-      } else {
-        document.getElementById("errorMessage").innerText = `❌ Errore: ${data.error || "Errore sconosciuto"}`;
-        document.getElementById("errorMessage").style.display = "block";
-      }
-    })
-    .catch(error => {
-      console.error("❌ Errore durante l’invio:", error);
-      document.getElementById("errorMessage").innerText = `❌ Errore di connessione: ${error.message}`;
-      document.getElementById("errorMessage").style.display = "block";
-    });
-}
-
 // ✅ Inizializza il caricamento degli articoli all'avvio della pagina
-window.onload = function () {
-  caricaArticoli();
+window.onload = async function () {
+  await fetchApiUrl();
+  await caricaArticoli();
 };
     </script>
 
