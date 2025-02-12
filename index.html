@@ -252,32 +252,25 @@
         function inviaOrdine() {
     const ordine = {
         ordineDettagli: carrello.map(item => ({
-            CardCode: document.getElementById("codiceCliente").value.trim(),
+            CardCode: document.getElementById('codiceCliente').value.trim(),
             ItemCode: item.articolo,
             Quantity: item.quantita,
-            Spedizione: document.getElementById("spedizione").value,
-            NomeCognome: document.getElementById("nomeCognome").value.trim(),
-            EmailTelefono: document.getElementById("emailTelefono").value.trim(),
-            Indirizzo: document.getElementById("indirizzo").value.trim(),
-            CittaCap: document.getElementById("cittaCap").value.trim(),
-            Paese: document.getElementById("paese").value.trim(),
-            Note: document.getElementById("note").value.trim()
+            Spedizione: document.getElementById('spedizione').value,
+            NomeCognome: document.getElementById('nomeCognome').value.trim(),
+            EmailTelefono: document.getElementById('emailTelefono').value.trim(),
+            Indirizzo: document.getElementById('indirizzo').value.trim(),
+            CittaCap: document.getElementById('cittaCap').value.trim(),
+            Paese: document.getElementById('paese').value.trim(),
+            Note: document.getElementById('note').value.trim()
         }))
     };
 
-    // 🔴 Debug: verifica che i dati siano corretti PRIMA dell'invio
-    console.log("📦 Dati che saranno inviati:", JSON.stringify(ordine, null, 2));
+    console.log("📦 Dati inviati:", ordine); // Debug: log dei dati prima dell'invio
 
-    // Se carrello è vuoto, blocca l'invio
-    if (ordine.ordineDettagli.length === 0) {
-        alert("⚠️ Il carrello è vuoto, aggiungi almeno un articolo.");
-        return;
-    }
-
-    fetch(apiUrl, {
-        method: "POST",
+    fetch('https://script.google.com/macros/s/AKfycby83ONjVGLpDfyZ5-KdQQC8Qll9WMhxItleU4WAFzuosUljFuiZNU3suHP5_mS4cQmB/exec', {
+        method: 'POST',
         headers: {
-            "Content-Type": "application/json"
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify(ordine)
     })
@@ -287,19 +280,19 @@
         return response.json();
     })
     .then(data => {
-        console.log("✅ Risposta JSON ricevuta:", data);
+        console.log("✅ Risposta JSON:", data);
         if (data.success) {
-            document.getElementById("successMessage").innerText = `✅ Ordine inviato con successo! ID Ordine: ${data.idOrdine}`;
-            document.getElementById("successMessage").style.display = "block";
+            document.getElementById('successMessage').innerText = `✅ Ordine inviato con successo! ID Ordine: ${data.idOrdine}`;
+            document.getElementById('successMessage').style.display = 'block';
         } else {
-            document.getElementById("errorMessage").innerText = `❌ Errore: ${data.error || "Errore sconosciuto"}`;
-            document.getElementById("errorMessage").style.display = "block";
+            document.getElementById('errorMessage').innerText = `❌ Errore: ${data.error}`;
+            document.getElementById('errorMessage').style.display = 'block';
         }
     })
     .catch(error => {
-        console.error("❌ Errore durante l’invio:", error);
-        document.getElementById("errorMessage").innerText = `❌ Errore di connessione: ${error.message}`;
-        document.getElementById("errorMessage").style.display = "block";
+        console.error('❌ Errore durante l’invio:', error);
+        document.getElementById('errorMessage').innerText = `❌ Errore di connessione: ${error.message}`;
+        document.getElementById('errorMessage').style.display = 'block';
     });
 }
 
