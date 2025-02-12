@@ -156,69 +156,149 @@
     </div>
 
     <script>
-        let apiUrl = "";
+        const apiUrl = 'https://script.google.com/macros/s/AKfycbzOvr2V81okKRM-O4mvbyZ29VqIbhSLqNY7HAoij2R6UGNMNM4ebzrw0_5HyxfmBfl0/exec';
+        let carrello = [];
 
-// ✅ Recupera l'API URL prima di qualsiasi operazione
-async function fetchApiUrl() {
-  try {
-    const response = await fetch("/.netlify/functions/sendToGoogleSheet");
-    if (!response.ok) throw new Error("Errore nel recupero dell'API URL");
-    
-    const data = await response.json();
-    if (!data.apiUrl) throw new Error("API URL non disponibile nei dati ricevuti");
+        function gestisciSpedizione() {
+            const spedizione = document.getElementById('spedizione').value;
+            const campiSpedizione = ['nomeCognome', 'emailTelefono', 'indirizzo', 'cittaCap', 'paese'];
 
-    apiUrl = data.apiUrl;
-    console.log("🔗 API URL ottenuta:", apiUrl);
-  } catch (error) {
-    console.error("❌ Errore nel recupero dell'API URL:", error);
-  }
-}
+            campiSpedizione.forEach(id => {
+                const campo = document.getElementById(id);
+                campo.disabled = spedizione !== "SI";
+                campo.required = spedizione === "SI";
+                if (spedizione !== "SI") campo.value = '';
+            });
+        }
 
-// ✅ Aspetta che l'API sia pronta prima di eseguire qualsiasi altra azione
-async function waitForApiUrl() {
-  while (!apiUrl) {
-    console.log("⌛ In attesa dell'API URL...");
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-  console.log("✅ API URL pronta:", apiUrl);
-}
+        function aggiungiArticolo() {
+            const articolo = document.getElementById('articolo').value.trim();
+            const quantita = parseInt(document.getElementById('quantita').value);
 
-// ✅ Verifica il codice cliente
-async function verificaCliente() {
-  await waitForApiUrl();
-  const codiceCliente = document.getElementById("codiceCliente").value.trim();
+            if (!articolo || isNaN(quantita) || quantita < 1) {
+                alert("Inserisci un articolo valido e una quantità.");
+                return;
+            }
 
-  if (!codiceCliente) {
-    alert("⚠️ Inserisci un codice cliente!");
-    return;
-  }
+            const esistente = carrello.find(item => item.articolo === articolo);
+            if (esistente) {
+                esistente.quantita += quantita;
+            } else {
+                carrello.push({ articolo, quantita });
+            }
 
-  fetch(`${apiUrl}?action=getClienti`)
-    .then(response => response.json())
-    .then(data => {
-      const cliente = data.find(c => c[0] === codiceCliente);
-      const welcomeMessage = document.getElementById("welcomeMessage");
-      const inviaOrdineBtn = document.getElementById("inviaOrdineBtn");
+            aggiornaCarrello();
+            document.getElementById('articolo').value = '';
+            document.getElementById('quantita').value = '';
+        }
 
-      if (cliente) {
-        welcomeMessage.innerText = `✅ Benvenuto, ${cliente[1]}!`;
-        welcomeMessage.style.display = "block";
-        inviaOrdineBtn.disabled = false;
-      } else {
-        welcomeMessage.innerText = "❌ Codice cliente non valido!";
-        welcomeMessage.style.backgroundColor = "#D32F2F";
-        welcomeMessage.style.display = "block";
-        inviaOrdineBtn.disabled = true;
-      }
+        function aggiornaCarrello() {
+            const tbody = document.getElementById('carrello').querySelector('tbody');
+            tbody.innerHTML = '';
+
+            carrello.forEach((item, index) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.articolo}</td>
+                        <td>${item.quantita}</td>
+                        <td><button onclick="rimuoviArticolo(${index})">Rimuovi</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function rimuoviArticolo(index) {
+            carrello.splice(index, 1);
+            aggiornaCarrello();
+        }
+
+        function verificaCliente() {
+            const codiceCliente = document.getElementById('codiceCliente').value.trim();
+
+            fetch(`${apiUrl}?action=getClienti`)
+                .then(response => response.json())
+                .then(data => {
+                    const cliente = data.find(c => c[0] === codiceCliente);
+                    const welcomeMessage = document.getElementById('welcomeMessage');
+                    const inviaOrdineBtn = document.getElementById('inviaOrdineBtn');
+
+                    if (cliente) {
+                        welcomeMessage.innerText = `✅ Benvenuto, ${cliente[1]}!`;
+                        welcomeMessage.style.display = 'block';
+                        inviaOrdineBtn.disabled = false;
+                    } else {
+                        welcomeMessage.innerText = '❌ Codice cliente non valido!';
+                        welcomeMessage.style.backgroundColor = '#D32F2F';
+                        welcomeMessage.style.display = 'block';
+                        inviaOrdineBtn.disabled = true;
+                    }
+                });
+        }
+
+        function caricaArticoli() {
+            fetch(`${apiUrl}?action=getArticoli`)
+                .then(response => response.json())
+                .then(data => {
+                    const datalist = document.getElementById('articoliList');
+                    data.forEach(articolo => {
+                        const option = document.createElement('option');
+                        option.value = articolo[0];
+                        option.textContent = articolo[1];
+                        datalist.appendChild(option);
+                    });
+                });
+        }
+
+        function inviaOrdine() {
+    const ordine = {
+        ordineDettagli: carrello.map(item => ({
+            CardCode: document.getElementById('codiceCliente').value.trim(),
+            ItemCode: item.articolo,
+            Quantity: item.quantita,
+            Spedizione: document.getElementById('spedizione').value,
+            NomeCognome: document.getElementById('nomeCognome').value.trim(),
+            EmailTelefono: document.getElementById('emailTelefono').value.trim(),
+            Indirizzo: document.getElementById('indirizzo').value.trim(),
+            CittaCap: document.getElementById('cittaCap').value.trim(),
+            Paese: document.getElementById('paese').value.trim(),
+            Note: document.getElementById('note').value.trim()
+        }))
+    };
+
+    console.log("📦 Dati inviati:", ordine); // Debug: log dei dati prima dell'invio
+
+    fetch('https://script.google.com/macros/s/AKfycbzOvr2V81okKRM-O4mvbyZ29VqIbhSLqNY7HAoij2R6UGNMNM4ebzrw0_5HyxfmBfl0/exec', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(ordine)
     })
-    .catch(error => console.error("❌ Errore nel recupero clienti:", error));
+    .then(response => {
+        console.log("🔍 Risposta HTTP:", response.status);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        console.log("✅ Risposta JSON:", data);
+        if (data.success) {
+            document.getElementById('successMessage').innerText = `✅ Ordine inviato con successo! ID Ordine: ${data.idOrdine}`;
+            document.getElementById('successMessage').style.display = 'block';
+        } else {
+            document.getElementById('errorMessage').innerText = `❌ Errore: ${data.error}`;
+            document.getElementById('errorMessage').style.display = 'block';
+        }
+    })
+    .catch(error => {
+        console.error('❌ Errore durante l’invio:', error);
+        document.getElementById('errorMessage').innerText = `❌ Errore di connessione: ${error.message}`;
+        document.getElementById('errorMessage').style.display = 'block';
+    });
 }
 
-// ✅ Inizializza il caricamento degli articoli all'avvio della pagina
-window.onload = async function () {
-  await fetchApiUrl();
-  await caricaArticoli();
-};
+        window.onload = function() {
+            caricaArticoli();
+        };
     </script>
 
 </body>
