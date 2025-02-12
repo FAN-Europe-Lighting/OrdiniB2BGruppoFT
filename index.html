@@ -273,6 +273,7 @@
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(ordine)
+        mode: "cors" // 🚀 Abilita CORS
     })
     .then(response => {
         console.log("🔍 Risposta HTTP:", response.status);
