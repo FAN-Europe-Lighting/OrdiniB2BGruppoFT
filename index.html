@@ -156,7 +156,7 @@
     </div>
 
     <script>
-        const apiUrl = 'https://script.google.com/macros/s/AKfycbzOvr2V81okKRM-O4mvbyZ29VqIbhSLqNY7HAoij2R6UGNMNM4ebzrw0_5HyxfmBfl0/exec';
+        const apiUrl = '/.netlify/functions/sendToGoogleSheet';
         let carrello = [];
 
         function gestisciSpedizione() {
@@ -267,7 +267,7 @@
 
     console.log("📦 Dati inviati:", ordine); // Debug: log dei dati prima dell'invio
 
-    fetch('https://script.google.com/macros/s/AKfycbzOvr2V81okKRM-O4mvbyZ29VqIbhSLqNY7HAoij2R6UGNMNM4ebzrw0_5HyxfmBfl0/exec', {
+        fetch(apiUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
