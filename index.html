@@ -156,100 +156,65 @@
     </div>
 
     <script>
-        const apiUrl = 'https://script.google.com/macros/s/AKfycbwS_ujvaXecWkls1tVCggF9IgY1RBTHMTLXJBPdQfPZkzpn1guXWEoqsi2YiQ9-z_I5/exec';
-        let carrello = [];
+       const apiUrl = 'https://script.google.com/macros/s/AKfycbzatCEjvMKWd0h_zyy5LLOGAC1tpTQ5N4THHANzZofqghAigafBL3phD5Z2Y61scaoL/exec';
 
-        function gestisciSpedizione() {
-            const spedizione = document.getElementById('spedizione').value;
-            const campiSpedizione = ['nomeCognome', 'emailTelefono', 'indirizzo', 'cittaCap', 'paese'];
-
-            campiSpedizione.forEach(id => {
-                const campo = document.getElementById(id);
-                campo.disabled = spedizione !== "SI";
-                campo.required = spedizione === "SI";
-                if (spedizione !== "SI") campo.value = '';
-            });
-        }
-
-        function aggiungiArticolo() {
-            const articolo = document.getElementById('articolo').value.trim();
-            const quantita = parseInt(document.getElementById('quantita').value);
-
-            if (!articolo || isNaN(quantita) || quantita < 1) {
-                alert("Inserisci un articolo valido e una quantità.");
+// ✅ Caricamento Articoli con Debug
+function caricaArticoli() {
+    fetch(`${apiUrl}?action=getArticoli`)
+        .then(response => response.json())
+        .then(data => {
+            console.log("📦 Dati ricevuti:", data);
+            if (!Array.isArray(data)) {
+                console.error("❌ Errore: i dati ricevuti non sono un array!", data);
                 return;
             }
 
-            const esistente = carrello.find(item => item.articolo === articolo);
-            if (esistente) {
-                esistente.quantita += quantita;
-            } else {
-                carrello.push({ articolo, quantita });
+            const datalist = document.getElementById('articoliList');
+            datalist.innerHTML = ''; 
+
+            data.forEach(articolo => {
+                const option = document.createElement('option');
+                option.value = articolo[0]; 
+                option.textContent = articolo[1]; 
+                datalist.appendChild(option);
+            });
+        })
+        .catch(error => console.error("❌ Errore nel caricamento degli articoli:", error));
+}
+
+// ✅ Verifica Cliente con Debug
+function verificaCliente() {
+    const codiceCliente = document.getElementById('codiceCliente').value.trim();
+
+    fetch(`${apiUrl}?action=getClienti`)
+        .then(response => response.json())
+        .then(data => {
+            console.log("📦 Dati ricevuti clienti:", data);
+            if (!Array.isArray(data)) {
+                console.error("❌ Errore: i dati ricevuti non sono un array!", data);
+                return;
             }
 
-            aggiornaCarrello();
-            document.getElementById('articolo').value = '';
-            document.getElementById('quantita').value = '';
-        }
+            const cliente = data.find(c => c[0] === codiceCliente);
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            const inviaOrdineBtn = document.getElementById('inviaOrdineBtn');
 
-        function aggiornaCarrello() {
-            const tbody = document.getElementById('carrello').querySelector('tbody');
-            tbody.innerHTML = '';
+            if (cliente) {
+                welcomeMessage.innerText = `✅ Benvenuto, ${cliente[1]}!`;
+                welcomeMessage.style.display = 'block';
+                inviaOrdineBtn.disabled = false;
+            } else {
+                welcomeMessage.innerText = '❌ Codice cliente non valido!';
+                welcomeMessage.style.backgroundColor = '#D32F2F';
+                welcomeMessage.style.display = 'block';
+                inviaOrdineBtn.disabled = true;
+            }
+        })
+        .catch(error => console.error("❌ Errore nella verifica cliente:", error));
+}
 
-            carrello.forEach((item, index) => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${item.articolo}</td>
-                        <td>${item.quantita}</td>
-                        <td><button onclick="rimuoviArticolo(${index})">Rimuovi</button></td>
-                    </tr>
-                `;
-            });
-        }
-
-        function rimuoviArticolo(index) {
-            carrello.splice(index, 1);
-            aggiornaCarrello();
-        }
-
-        function verificaCliente() {
-            const codiceCliente = document.getElementById('codiceCliente').value.trim();
-
-            fetch(`${apiUrl}?action=getClienti`)
-                .then(response => response.json())
-                .then(data => {
-                    const cliente = data.find(c => c[0] === codiceCliente);
-                    const welcomeMessage = document.getElementById('welcomeMessage');
-                    const inviaOrdineBtn = document.getElementById('inviaOrdineBtn');
-
-                    if (cliente) {
-                        welcomeMessage.innerText = `✅ Benvenuto, ${cliente[1]}!`;
-                        welcomeMessage.style.display = 'block';
-                        inviaOrdineBtn.disabled = false;
-                    } else {
-                        welcomeMessage.innerText = '❌ Codice cliente non valido!';
-                        welcomeMessage.style.backgroundColor = '#D32F2F';
-                        welcomeMessage.style.display = 'block';
-                        inviaOrdineBtn.disabled = true;
-                    }
-                });
-        }
-
-        function caricaArticoli() {
-            fetch(`${apiUrl}?action=getArticoli`)
-                .then(response => response.json())
-                .then(data => {
-                    const datalist = document.getElementById('articoliList');
-                    data.forEach(articolo => {
-                        const option = document.createElement('option');
-                        option.value = articolo[0];
-                        option.textContent = articolo[1];
-                        datalist.appendChild(option);
-                    });
-                });
-        }
-
-        function inviaOrdine() {
+// ✅ Invia Ordine
+function inviaOrdine() {
     const ordine = {
         ordineDettagli: carrello.map(item => ({
             CardCode: document.getElementById('codiceCliente').value.trim(),
@@ -265,20 +230,16 @@
         }))
     };
 
-    console.log("📦 Dati inviati:", ordine); // Debug: log dei dati prima dell'invio
+    console.log("📦 Dati inviati:", ordine);
 
-    fetch('https://script.google.com/macros/s/AKfycbwS_ujvaXecWkls1tVCggF9IgY1RBTHMTLXJBPdQfPZkzpn1guXWEoqsi2YiQ9-z_I5/exec', {
+    fetch(apiUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(ordine)
     })
-    .then(response => {
-        console.log("🔍 Risposta HTTP:", response.status);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         console.log("✅ Risposta JSON:", data);
         if (data.success) {
@@ -296,9 +257,10 @@
     });
 }
 
-        window.onload = function() {
-            caricaArticoli();
-        };
+window.onload = function() {
+    caricaArticoli();
+};
+
     </script>
 
 </body>
