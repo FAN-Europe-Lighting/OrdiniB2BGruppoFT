@@ -10,42 +10,53 @@ exports.handler = async (event) => {
     };
   }
 
-  let url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}`;
-  let method = event.httpMethod;
-  let headers = {
+  // ✅ Verifica il metodo HTTP e analizza il body
+  let bodyData;
+  if (event.body) {
+    try {
+      bodyData = JSON.parse(event.body);
+    } catch (error) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "JSON non valido nel body della richiesta" }),
+      };
+    }
+  } else {
+    bodyData = {}; // Inizializza bodyData se è vuoto
+  }
+
+  const tableName = event.queryStringParameters.table;
+  if (!tableName) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Parametro 'table' mancante" }),
+    };
+  }
+
+  const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableName}`;
+  const headers = {
     Authorization: `Bearer ${AIRTABLE_API_KEY}`,
     "Content-Type": "application/json",
   };
 
   try {
-    if (method === "GET") {
-      if (!event.queryStringParameters.table) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ error: "Parametro 'table' mancante" }),
-        };
-      }
-      url += `/${event.queryStringParameters.table}`;
-    } else if (method === "POST") {
-      const bodyData = JSON.parse(event.body);
-      if (!bodyData.table || !bodyData.records) {
-        return {
-          statusCode: 400,
-          body: JSON.stringify({ error: "Dati mancanti" }),
-        };
-      }
-      url += `/${bodyData.table}`;
-    }
-
-    const response = await fetch(url, {
-      method,
+    const response = await fetch(airtableUrl, {
+      method: event.httpMethod,
       headers,
-      body: method === "POST" ? JSON.stringify({ records: bodyData.records }) : null,
+      body: event.httpMethod === "POST" ? JSON.stringify(bodyData) : null,
     });
 
+    if (!response.ok) {
+      throw new Error(`Errore API Airtable: ${response.statusText}`);
+    }
+
     const data = await response.json();
-    return { statusCode: response.status, body: JSON.stringify(data) };
+    return {
+      statusCode: 200,
+      body: JSON.stringify(data),
+    };
   } catch (error) {
+    console.error("❌ Errore Airtable:", error);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.message }),
