@@ -27,15 +27,16 @@ exports.handler = async (event) => {
     };
   }
 
-  const tableName = bodyData.table; // ✅ Ora prendiamo 'table' dal body invece che dai parametri della query
-  if (!tableName) {
+  if (!bodyData.table) {
     return {
       statusCode: 400,
       body: JSON.stringify({ error: "Parametro 'table' mancante" }),
     };
   }
 
+  const tableName = encodeURIComponent(bodyData.table); // ✅ Evitiamo errori sui nomi tabella con spazi
   const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableName}`;
+  
   const headers = {
     Authorization: `Bearer ${AIRTABLE_API_KEY}`,
     "Content-Type": "application/json",
@@ -43,9 +44,9 @@ exports.handler = async (event) => {
 
   try {
     const response = await fetch(airtableUrl, {
-      method: event.httpMethod,
+      method: "POST",
       headers,
-      body: event.httpMethod === "POST" ? JSON.stringify(bodyData) : null,
+      body: JSON.stringify({ records: bodyData.records }),
     });
 
     if (!response.ok) {
