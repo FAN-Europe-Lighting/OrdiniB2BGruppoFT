@@ -156,150 +156,151 @@
     </div>
 
     <script>
-        const apiUrl = 'https://script.google.com/macros/s/AKfycbwcTv2gyUbh9eG9qQtvaakWkaRye2ycD2RvkXpwdx_Writl0bhks-f3bqjDrCND3dbR/exec';
-        let carrello = [];
+    const apiUrl = "/.netlify/functions/airtableHandler";
+    let carrello = [];
 
-        function gestisciSpedizione() {
-            const spedizione = document.getElementById('spedizione').value;
-            const campiSpedizione = ['nomeCognome', 'emailTelefono', 'indirizzo', 'cittaCap', 'paese'];
+    function gestisciSpedizione() {
+        const spedizione = document.getElementById('spedizione').value;
+        const campiSpedizione = ['nomeCognome', 'emailTelefono', 'indirizzo', 'cittaCap', 'paese'];
 
-            campiSpedizione.forEach(id => {
-                const campo = document.getElementById(id);
-                campo.disabled = spedizione !== "SI";
-                campo.required = spedizione === "SI";
-                if (spedizione !== "SI") campo.value = '';
-            });
+        campiSpedizione.forEach(id => {
+            const campo = document.getElementById(id);
+            campo.disabled = spedizione !== "SI";
+            campo.required = spedizione === "SI";
+            if (spedizione !== "SI") campo.value = '';
+        });
+    }
+
+    function aggiungiArticolo() {
+        const articolo = document.getElementById('articolo').value.trim();
+        const quantita = parseInt(document.getElementById('quantita').value);
+
+        if (!articolo || isNaN(quantita) || quantita < 1) {
+            alert("Inserisci un articolo valido e una quantità.");
+            return;
         }
 
-        function aggiungiArticolo() {
-            const articolo = document.getElementById('articolo').value.trim();
-            const quantita = parseInt(document.getElementById('quantita').value);
-
-            if (!articolo || isNaN(quantita) || quantita < 1) {
-                alert("Inserisci un articolo valido e una quantità.");
-                return;
-            }
-
-            const esistente = carrello.find(item => item.articolo === articolo);
-            if (esistente) {
-                esistente.quantita += quantita;
-            } else {
-                carrello.push({ articolo, quantita });
-            }
-
-            aggiornaCarrello();
-            document.getElementById('articolo').value = '';
-            document.getElementById('quantita').value = '';
-        }
-
-        function aggiornaCarrello() {
-            const tbody = document.getElementById('carrello').querySelector('tbody');
-            tbody.innerHTML = '';
-
-            carrello.forEach((item, index) => {
-                tbody.innerHTML += 
-                    <tr>
-                        <td>${item.articolo}</td>
-                        <td>${item.quantita}</td>
-                        <td><button onclick="rimuoviArticolo(${index})">Rimuovi</button></td>
-                    </tr>
-                ;
-            });
-        }
-
-        function rimuoviArticolo(index) {
-            carrello.splice(index, 1);
-            aggiornaCarrello();
-        }
-
-        function verificaCliente() {
-            const codiceCliente = document.getElementById('codiceCliente').value.trim();
-
-            fetch(${apiUrl}?action=getClienti)
-                .then(response => response.json())
-                .then(data => {
-                    const cliente = data.find(c => c[0] === codiceCliente);
-                    const welcomeMessage = document.getElementById('welcomeMessage');
-                    const inviaOrdineBtn = document.getElementById('inviaOrdineBtn');
-
-                    if (cliente) {
-                        welcomeMessage.innerText = ✅ Benvenuto, ${cliente[1]}!;
-                        welcomeMessage.style.display = 'block';
-                        inviaOrdineBtn.disabled = false;
-                    } else {
-                        welcomeMessage.innerText = '❌ Codice cliente non valido!';
-                        welcomeMessage.style.backgroundColor = '#D32F2F';
-                        welcomeMessage.style.display = 'block';
-                        inviaOrdineBtn.disabled = true;
-                    }
-                });
-        }
-
-        function caricaArticoli() {
-            fetch(${apiUrl}?action=getArticoli)
-                .then(response => response.json())
-                .then(data => {
-                    const datalist = document.getElementById('articoliList');
-                    data.forEach(articolo => {
-                        const option = document.createElement('option');
-                        option.value = articolo[0];
-                        option.textContent = articolo[1];
-                        datalist.appendChild(option);
-                    });
-                });
-        }
-
-        function inviaOrdine() {
-    const ordine = {
-        ordineDettagli: carrello.map(item => ({
-            CardCode: document.getElementById('codiceCliente').value.trim(),
-            ItemCode: item.articolo,
-            Quantity: item.quantita,
-            Spedizione: document.getElementById('spedizione').value,
-            NomeCognome: document.getElementById('nomeCognome').value.trim(),
-            EmailTelefono: document.getElementById('emailTelefono').value.trim(),
-            Indirizzo: document.getElementById('indirizzo').value.trim(),
-            CittaCap: document.getElementById('cittaCap').value.trim(),
-            Paese: document.getElementById('paese').value.trim(),
-            Note: document.getElementById('note').value.trim()
-        }))
-    };
-
-    console.log("📦 Dati inviati:", ordine); // Debug: log dei dati prima dell'invio
-
-    fetch('https://script.google.com/macros/s/AKfycbwcTv2gyUbh9eG9qQtvaakWkaRye2ycD2RvkXpwdx_Writl0bhks-f3bqjDrCND3dbR/exec', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(ordine)
-    })
-    .then(response => {
-        console.log("🔍 Risposta HTTP:", response.status);
-        if (!response.ok) throw new Error(HTTP error! status: ${response.status});
-        return response.json();
-    })
-    .then(data => {
-        console.log("✅ Risposta JSON:", data);
-        if (data.success) {
-            document.getElementById('successMessage').innerText = ✅ Ordine inviato con successo! ID Ordine: ${data.idOrdine};
-            document.getElementById('successMessage').style.display = 'block';
+        const esistente = carrello.find(item => item.articolo === articolo);
+        if (esistente) {
+            esistente.quantita += quantita;
         } else {
-            document.getElementById('errorMessage').innerText = ❌ Errore: ${data.error};
+            carrello.push({ articolo, quantita });
+        }
+
+        aggiornaCarrello();
+        document.getElementById('articolo').value = '';
+        document.getElementById('quantita').value = '';
+    }
+
+    function aggiornaCarrello() {
+        const tbody = document.getElementById('carrello').querySelector('tbody');
+        tbody.innerHTML = '';
+
+        carrello.forEach((item, index) => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${item.articolo}</td>
+                    <td>${item.quantita}</td>
+                    <td><button onclick="rimuoviArticolo(${index})">Rimuovi</button></td>
+                </tr>
+            `;
+        });
+    }
+
+    function rimuoviArticolo(index) {
+        carrello.splice(index, 1);
+        aggiornaCarrello();
+    }
+
+    async function verificaCliente() {
+        try {
+            const response = await fetch(`${apiUrl}?table=Clienti`);
+            const data = await response.json();
+            const codiceCliente = document.getElementById('codiceCliente').value.trim();
+            const cliente = data.records.find(c => c.fields.CardCode === codiceCliente);
+
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            const inviaOrdineBtn = document.getElementById('inviaOrdineBtn');
+
+            if (cliente) {
+                welcomeMessage.innerText = `✅ Benvenuto, ${cliente.fields.CardName}!`;
+                welcomeMessage.style.display = 'block';
+                inviaOrdineBtn.disabled = false;
+            } else {
+                welcomeMessage.innerText = '❌ Codice cliente non valido!';
+                welcomeMessage.style.backgroundColor = '#D32F2F';
+                welcomeMessage.style.display = 'block';
+                inviaOrdineBtn.disabled = true;
+            }
+        } catch (error) {
+            console.error("Errore nel recupero clienti:", error);
+        }
+    }
+
+    async function caricaArticoli() {
+        try {
+            const response = await fetch(`${apiUrl}?table=Articoli`);
+            const data = await response.json();
+            const datalist = document.getElementById('articoliList');
+
+            data.records.forEach(articolo => {
+                const option = document.createElement('option');
+                option.value = articolo.fields.ItemCode;
+                option.textContent = articolo.fields.ItemName;
+                datalist.appendChild(option);
+            });
+        } catch (error) {
+            console.error("Errore nel caricamento articoli:", error);
+        }
+    }
+
+    async function inviaOrdine() {
+        try {
+            const ordine = {
+                table: "Ordini",
+                records: carrello.map(item => ({
+                    fields: {
+                        CardCode: document.getElementById('codiceCliente').value.trim(),
+                        ItemCode: item.articolo,
+                        Quantity: item.quantita,
+                        Spedizione: document.getElementById('spedizione').value,
+                        NomeCognome: document.getElementById('nomeCognome').value.trim(),
+                        EmailTelefono: document.getElementById('emailTelefono').value.trim(),
+                        Indirizzo: document.getElementById('indirizzo').value.trim(),
+                        CittaCap: document.getElementById('cittaCap').value.trim(),
+                        Paese: document.getElementById('paese').value.trim(),
+                        Note: document.getElementById('note').value.trim()
+                    }
+                }))
+            };
+
+            console.log("📦 Dati inviati:", JSON.stringify(ordine));
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(ordine)
+            });
+
+            const data = await response.json();
+            console.log("✅ Risposta JSON:", data);
+
+            if (data.records) {
+                document.getElementById('successMessage').innerText = `✅ Ordine inviato con successo!`;
+                document.getElementById('successMessage').style.display = 'block';
+            } else {
+                document.getElementById('errorMessage').innerText = `❌ Errore: ${data.error}`;
+                document.getElementById('errorMessage').style.display = 'block';
+            }
+        } catch (error) {
+            console.error('❌ Errore durante l’invio:', error);
+            document.getElementById('errorMessage').innerText = `❌ Errore di connessione: ${error.message}`;
             document.getElementById('errorMessage').style.display = 'block';
         }
-    })
-    .catch(error => {
-        console.error('❌ Errore durante l’invio:', error);
-        document.getElementById('errorMessage').innerText = ❌ Errore di connessione: ${error.message};
-        document.getElementById('errorMessage').style.display = 'block';
-    });
-}
+    }
 
-        window.onload = function() {
-            caricaArticoli();
-        };
-    </script>
+    window.onload = caricaArticoli;
+</script>
 
 </body>
 </html>
