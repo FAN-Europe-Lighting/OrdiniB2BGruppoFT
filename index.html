@@ -213,46 +213,61 @@
     }
 
     async function verificaCliente() {
-        try {
-            const response = await fetch(`${apiUrl}?table=Clienti`);
-            const data = await response.json();
-            const codiceCliente = document.getElementById('codiceCliente').value.trim();
-            const cliente = data.records.find(c => c.fields.CardCode === codiceCliente);
+    try {
+        const response = await fetch(`${apiUrl}?table=Clienti`);
+        if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`);
+        
+        const data = await response.json();
 
-            const welcomeMessage = document.getElementById('welcomeMessage');
-            const inviaOrdineBtn = document.getElementById('inviaOrdineBtn');
+        // ✅ Controlliamo che 'records' esista prima di usare 'find'
+        if (!data.records) throw new Error("Dati mancanti nella risposta Airtable");
 
-            if (cliente) {
-                welcomeMessage.innerText = `✅ Benvenuto, ${cliente.fields.CardName}!`;
-                welcomeMessage.style.display = 'block';
-                inviaOrdineBtn.disabled = false;
-            } else {
-                welcomeMessage.innerText = '❌ Codice cliente non valido!';
-                welcomeMessage.style.backgroundColor = '#D32F2F';
-                welcomeMessage.style.display = 'block';
-                inviaOrdineBtn.disabled = true;
-            }
-        } catch (error) {
-            console.error("Errore nel recupero clienti:", error);
+        const codiceCliente = document.getElementById('codiceCliente').value.trim();
+        const cliente = data.records.find(c => c.fields.CardCode === codiceCliente);
+
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const inviaOrdineBtn = document.getElementById('inviaOrdineBtn');
+
+        if (cliente) {
+            welcomeMessage.innerText = `✅ Benvenuto, ${cliente.fields.CardName}!`;
+            welcomeMessage.style.display = 'block';
+            inviaOrdineBtn.disabled = false;
+        } else {
+            welcomeMessage.innerText = '❌ Codice cliente non valido!';
+            welcomeMessage.style.backgroundColor = '#D32F2F';
+            welcomeMessage.style.display = 'block';
+            inviaOrdineBtn.disabled = true;
         }
+    } catch (error) {
+        console.error("Errore nel recupero clienti:", error);
     }
+}
+
 
     async function caricaArticoli() {
-        try {
-            const response = await fetch(`${apiUrl}?table=Articoli`);
-            const data = await response.json();
-            const datalist = document.getElementById('articoliList');
+    try {
+        const response = await fetch(`${apiUrl}?table=Articoli`);
+        if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`);
+        
+        const data = await response.json();
 
-            data.records.forEach(articolo => {
-                const option = document.createElement('option');
-                option.value = articolo.fields.ItemCode;
-                option.textContent = articolo.fields.ItemName;
-                datalist.appendChild(option);
-            });
-        } catch (error) {
-            console.error("Errore nel caricamento articoli:", error);
-        }
+        // ✅ Controlliamo che 'records' esista prima di usarlo
+        if (!data.records) throw new Error("Dati mancanti nella risposta Airtable");
+
+        const datalist = document.getElementById('articoliList');
+        datalist.innerHTML = ""; // ✅ Svuotiamo il datalist prima di aggiungere nuove opzioni
+
+        data.records.forEach(articolo => {
+            const option = document.createElement('option');
+            option.value = articolo.fields.ItemCode;
+            option.textContent = articolo.fields.ItemName;
+            datalist.appendChild(option);
+        });
+    } catch (error) {
+        console.error("Errore nel caricamento articoli:", error);
     }
+}
+
 
     async function inviaOrdine() {
     try {
