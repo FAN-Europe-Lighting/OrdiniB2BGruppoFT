@@ -10,7 +10,6 @@ exports.handler = async (event) => {
     };
   }
 
-  // ✅ Verifica il metodo HTTP e analizza il body
   let bodyData;
   if (event.body) {
     try {
@@ -22,10 +21,13 @@ exports.handler = async (event) => {
       };
     }
   } else {
-    bodyData = {}; // Inizializza bodyData se è vuoto
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Body della richiesta mancante" }),
+    };
   }
 
-  const tableName = event.queryStringParameters.table;
+  const tableName = bodyData.table; // ✅ Ora prendiamo 'table' dal body invece che dai parametri della query
   if (!tableName) {
     return {
       statusCode: 400,
