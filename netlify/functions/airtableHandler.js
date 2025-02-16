@@ -10,8 +10,16 @@ exports.handler = async (event) => {
     };
   }
 
-  let bodyData;
-  if (event.body) {
+  let bodyData = {};
+  
+  // ✅ Controlliamo se è una richiesta GET o POST
+  if (event.httpMethod === "POST") {
+    if (!event.body) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Body della richiesta mancante" }),
+      };
+    }
     try {
       bodyData = JSON.parse(event.body);
     } catch (error) {
@@ -20,22 +28,21 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: "JSON non valido nel body della richiesta" }),
       };
     }
-  } else {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Body della richiesta mancante" }),
-    };
   }
 
-  if (!bodyData.table) {
+  // ✅ Controlliamo se 'table' è passato come query param (GET) o nel body (POST)
+  const tableName = event.httpMethod === "GET"
+    ? event.queryStringParameters.table
+    : bodyData.table;
+
+  if (!tableName) {
     return {
       statusCode: 400,
       body: JSON.stringify({ error: "Parametro 'table' mancante" }),
     };
   }
 
-  const tableName = encodeURIComponent(bodyData.table); // ✅ Evitiamo errori sui nomi tabella con spazi
-  const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${tableName}`;
+  const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(tableName)}`;
   
   const headers = {
     Authorization: `Bearer ${AIRTABLE_API_KEY}`,
@@ -44,13 +51,14 @@ exports.handler = async (event) => {
 
   try {
     const response = await fetch(airtableUrl, {
-      method: "POST",
+      method: event.httpMethod,
       headers,
-      body: JSON.stringify({ records: bodyData.records }),
+      body: event.httpMethod === "POST" ? JSON.stringify({ records: bodyData.records }) : null,
     });
 
     if (!response.ok) {
-      throw new Error(`Errore API Airtable: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Errore API Airtable: ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
