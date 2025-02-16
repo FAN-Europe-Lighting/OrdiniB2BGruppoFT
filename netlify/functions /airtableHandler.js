@@ -10,19 +10,37 @@ exports.handler = async (event) => {
     };
   }
 
-  const { path, method, body } = event;
-  const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}`;
-
-  const headers = {
+  let url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}`;
+  let method = event.httpMethod;
+  let headers = {
     Authorization: `Bearer ${AIRTABLE_API_KEY}`,
     "Content-Type": "application/json",
   };
 
   try {
-    const response = await fetch(`${airtableUrl}${path}`, {
+    if (method === "GET") {
+      if (!event.queryStringParameters.table) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: "Parametro 'table' mancante" }),
+        };
+      }
+      url += `/${event.queryStringParameters.table}`;
+    } else if (method === "POST") {
+      const bodyData = JSON.parse(event.body);
+      if (!bodyData.table || !bodyData.records) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: "Dati mancanti" }),
+        };
+      }
+      url += `/${bodyData.table}`;
+    }
+
+    const response = await fetch(url, {
       method,
       headers,
-      body: method === "POST" ? body : null,
+      body: method === "POST" ? JSON.stringify({ records: bodyData.records }) : null,
     });
 
     const data = await response.json();
