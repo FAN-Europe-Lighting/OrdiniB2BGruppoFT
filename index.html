@@ -255,49 +255,49 @@
     }
 
     async function inviaOrdine() {
-        try {
-            const ordine = {
-                table: "Ordini",
-                records: carrello.map(item => ({
-                    fields: {
-                        CardCode: document.getElementById('codiceCliente').value.trim(),
-                        ItemCode: item.articolo,
-                        Quantity: item.quantita,
-                        Spedizione: document.getElementById('spedizione').value,
-                        NomeCognome: document.getElementById('nomeCognome').value.trim(),
-                        EmailTelefono: document.getElementById('emailTelefono').value.trim(),
-                        Indirizzo: document.getElementById('indirizzo').value.trim(),
-                        CittaCap: document.getElementById('cittaCap').value.trim(),
-                        Paese: document.getElementById('paese').value.trim(),
-                        Note: document.getElementById('note').value.trim()
-                    }
-                }))
-            };
+    try {
+        const ordine = {
+            table: "Ordini",  // ✅ Assicuriamoci che 'table' sia incluso nel body della richiesta
+            records: carrello.map(item => ({
+                fields: {
+                    CardCode: document.getElementById('codiceCliente').value.trim(),
+                    ItemCode: item.articolo,
+                    Quantity: item.quantita,
+                    Spedizione: document.getElementById('spedizione').value,
+                    NomeCognome: document.getElementById('nomeCognome').value.trim(),
+                    EmailTelefono: document.getElementById('emailTelefono').value.trim(),
+                    Indirizzo: document.getElementById('indirizzo').value.trim(),
+                    CittaCap: document.getElementById('cittaCap').value.trim(),
+                    Paese: document.getElementById('paese').value.trim(),
+                    Note: document.getElementById('note').value.trim()
+                }
+            }))
+        };
 
-            console.log("📦 Dati inviati:", JSON.stringify(ordine));
+        console.log("📦 Dati inviati:", JSON.stringify(ordine));
 
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(ordine)
-            });
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(ordine)
+        });
 
-            const data = await response.json();
-            console.log("✅ Risposta JSON:", data);
+        const data = await response.json();
+        console.log("✅ Risposta JSON:", data);
 
-            if (data.records) {
-                document.getElementById('successMessage').innerText = `✅ Ordine inviato con successo!`;
-                document.getElementById('successMessage').style.display = 'block';
-            } else {
-                document.getElementById('errorMessage').innerText = `❌ Errore: ${data.error}`;
-                document.getElementById('errorMessage').style.display = 'block';
-            }
-        } catch (error) {
-            console.error('❌ Errore durante l’invio:', error);
-            document.getElementById('errorMessage').innerText = `❌ Errore di connessione: ${error.message}`;
+        if (data.records) {
+            document.getElementById('successMessage').innerText = `✅ Ordine inviato con successo!`;
+            document.getElementById('successMessage').style.display = 'block';
+        } else {
+            document.getElementById('errorMessage').innerText = `❌ Errore: ${data.error}`;
             document.getElementById('errorMessage').style.display = 'block';
         }
+    } catch (error) {
+        console.error('❌ Errore durante l’invio:', error);
+        document.getElementById('errorMessage').innerText = `❌ Errore di connessione: ${error.message}`;
+        document.getElementById('errorMessage').style.display = 'block';
     }
+}
 
     window.onload = caricaArticoli;
 </script>
